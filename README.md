@@ -58,6 +58,19 @@ pwsh -File tools/test.ps1
 - 中文字体为 Noto Sans SC Regular / Bold，采用 SIL Open Font License，许可证位于 `assets/fonts/OFL.txt`。
 - 音效由 `scripts/sound.gd` 在启动时合成，无外部音频依赖。
 
-## 说明
+## GitHub Pages 自动部署
 
-当前交付为完整 Godot 工程。本机未安装 Godot 导出模板，因此未生成独立 EXE；如需导出，请先在 Godot 编辑器中选择“编辑器 → 管理导出模板 → 下载并安装”。
+仓库使用 `.github/workflows/deploy-web.yml` 自动发布，无需在本机安装导出模板，也不需要提交 Web 构建产物。
+
+每次推送到 `main` 后，GitHub Actions 会：
+
+1. 下载官方 Godot 4.7.2 Linux 版和对应导出模板。
+2. 导入资源并运行规则、输入集成测试。
+3. 在 CI 临时目录导出 Web 版到 `build/web/`。
+4. 将该目录作为 Pages artifact 部署，不写回 Git 仓库。
+
+首次使用时，在仓库的 **Settings → Pages → Build and deployment** 中，将 **Source** 设为 **GitHub Actions**。随后推送到 `main`，或在 **Actions** 页面手动运行 **Deploy Godot Web to Pages**。
+
+发布地址：<https://soryu-ryouji.github.io/hanko/>
+
+Web 导出预设保存在 `export_presets.cfg`，线程支持已关闭，以兼容 GitHub Pages 的默认响应头。`build/` 仍由 Git 忽略。

@@ -1,0 +1,73 @@
+name: Deploy Godot Web to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GODOT_VERSION: 4.7.2
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install Godot and export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_url="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"
+          curl -fL --retry 3 -o godot.zip "${base_url}/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          install -m 755 "Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$RUNNER_TEMP/godot"
+
+          curl -fL --retry 3 -o templates.tpz "${base_url}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p templates "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          unzip -q templates.tpz -d templates
+          cp -a templates/templates/. "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+
+      - name: Import Godot resources
+        run: "$RUNNER_TEMP/godot" --headless --path . --import
+
+      - name: Test gameplay rules
+        run: "$RUNNER_TEMP/godot" --headless --path . --script res://tools/test_rules.gd
+
+      - name: Test input integration
+        run: "$RUNNER_TEMP/godot" --headless --path . --script res://tools/test_integration.gd
+
+      - name: Export Web build
+        run: |
+          mkdir -p build/web
+          "$RUNNER_TEMP/godot" --headless --path . --export-release Web "$GITHUB_WORKSPACE/build/web/index.html"
+          touch build/web/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
