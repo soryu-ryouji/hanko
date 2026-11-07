@@ -39,13 +39,16 @@ jobs:
           cp -a templates/templates/. "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
 
       - name: Import Godot resources
-        run: "$RUNNER_TEMP/godot" --headless --path . --import
+        run: |
+          "$RUNNER_TEMP/godot" --headless --path . --import
 
       - name: Test gameplay rules
-        run: "$RUNNER_TEMP/godot" --headless --path . --script res://tools/test_rules.gd
+        run: |
+          "$RUNNER_TEMP/godot" --headless --path . --script res://tools/test_rules.gd
 
       - name: Test input integration
-        run: "$RUNNER_TEMP/godot" --headless --path . --script res://tools/test_integration.gd
+        run: |
+          "$RUNNER_TEMP/godot" --headless --path . --script res://tools/test_integration.gd
 
       - name: Export Web build
         run: |
